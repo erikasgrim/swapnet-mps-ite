@@ -72,7 +72,7 @@ function SWAP_network_block(s,
   zvals::Vector{Float64}=zeros(length(s))
   )
 
-  SWAP = [1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1]
+  SWAP_matrix = [1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1]
   N = length(s)
 
   gates = ITensor[]
@@ -89,13 +89,20 @@ function SWAP_network_block(s,
       qb = logical_qubit_order[b]
       
       coupling_weight = get(J, (min(qa,qb), max(qa,qb)), 0.0)
-      if coupling_weight != 0.0
-        gate = op(expZZ(tau, coupling_weight), s[a], s[b])
-        push!(gates, gate)
-      end
 
-      SWAP_gate = ITensorMPS.op(SWAP, s[a], s[b])
-      push!(gates, SWAP_gate)
+      # if coupling_weight != 0.0
+      #   gate = op(expZZ(tau, coupling_weight), s[a], s[b])
+      #   push!(gates, gate)
+      # end
+
+      # SWAP_gate = ITensorMPS.op(SWAP, s[a], s[b])
+      # push!(gates, SWAP_gate)
+
+      # TODO: Is it faster to combine all three operations into a single gate?
+      gate_matrix = expZZ(tau, coupling_weight)
+      renormalization_matrix = UniformScaling(exp(zzcorr[qa, qb] * tau * coupling_weight))
+      gate = op(SWAP_matrix * gate_matrix * renormalization_matrix, s[a], s[b])
+      push!(gates, gate)
 
       logical_qubit_order[a], logical_qubit_order[b] = logical_qubit_order[b], logical_qubit_order[a]
     end
@@ -105,10 +112,16 @@ function SWAP_network_block(s,
   for i in 1:N
     qi = logical_qubit_order[i]
     field_strength = get(h, qi, 0.0)
-    if field_strength != 0.0
-      gate = op(expZ(tau, field_strength), s[i])
-      push!(gates, gate)
-    end
+
+    # if field_strength != 0.0
+    #   gate = op(expZ(tau, field_strength), s[i])
+    #   push!(gates, gate)
+    # end
+
+    gate_matrix = expZ(tau, field_strength)
+    renormalization_matrix = UniformScaling(exp(zvals[qi] * tau * field_strength))
+    gate = op(gate_matrix * renormalization_matrix, s[i])
+    push!(gates, gate)
   end
 
   return gates, logical_qubit_order
@@ -157,9 +170,10 @@ let
   BLAS.set_num_threads(8)
   # TEBD parameters
   cutoff = 1E-9
-  tau = 100.0
-  ttotal = 2000.0
+  tau = 1.0 # Initial timestep
+  ttotal = 3000.0
   chi = 32
+  dE_target = 1E-2
 
   # Load JSON file 
   path = "data/Ising/ising_Ns10_Nt9_Nq2_K15_gamma0.5_zeta0.1_rho0.1.json"
@@ -180,14 +194,18 @@ let
   # Initial correlations and expectations
   zzcorr = 4 * correlation_matrix(psi,"Sz","Sz")
   zvals = 2 * expect(psi,"Sz")
+  energy = state_energy(zvals, zzcorr, J, h, offset)
+  energy_slope = nothing
 
   # Optimization loop
   init_logical_qubit_order = collect(1:N)
   logical_qubit_order = copy(init_logical_qubit_order)
   for t in 0.0:tau:ttotal
     println("Time: $t")
-    TEBD_gates, logical_qubit_order = SWAP_network_block(s, J, h, tau, logical_qubit_order)
+
+    TEBD_gates, logical_qubit_order = SWAP_network_block(s, J, h, tau, logical_qubit_order, zzcorr, zvals)
     psi = apply(TEBD_gates, psi; cutoff=cutoff, maxdim=chi)
+
     println("Norm before normalization: ", norm(psi))
     normalize!(psi)
 
@@ -199,11 +217,32 @@ let
       zzcorr = zzcorr[logical_qubit_order, logical_qubit_order]
     end
 
-    energy = state_energy(zvals, zzcorr, J, h, offset)
+    # Recalculate timestep
+    new_energy = state_energy(zvals, zzcorr, J, h, offset)
+    dE = new_energy - energy
+    energy_slope = - alpha * dE / tau
+    tau = tau * dE_target / energy_slope
+    # Clip tau to reasonable values
+    tau = clamp(tau, 1E-4, 500.0)
+    println("New timestep: $tau")
+    energy = new_energy
     best_bitstring, best_energy = get_QRR(zzcorr, J, h, offset)
-    
-    println("State energy: $energy", " Best QRR energy: $best_energy")
-  end  
+
+    # Generate N_s samples
+    N_s = 100
+    psi = orthogonalize(psi, 1)
+    samples = [sample(psi).-1 for _ in 1:N_s]
+    # If logical order is permuted, reorder bits in samples
+    if logical_qubit_order != init_logical_qubit_order
+      for s in samples
+        s[:] = s[logical_qubit_order]
+      end
+    end
+    energy_samples = [sample_energy(s, J, h, offset) for s in samples]
+
+    # Compare energies
+    println("State energy: $energy", " Best QRR energy: $best_energy", " Best sample energy: $(minimum(energy_samples))", " ΔE: $dE")
+  end
 
   # Generate N_s samples
   N_s = 1000
