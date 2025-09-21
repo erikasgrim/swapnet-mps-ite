@@ -65,8 +65,8 @@ function Hadamard_block(s)
 end
 
 function initialize_superposition(sites)
-    psi = productMPS(sites, "Up")
-    Hadamard_gates = Hadamard_block(sites)
-    psi = apply(Hadamard_gates, psi; cutoff=1E-9, maxdim=32)
-    return psi
+	psi = productMPS(sites, "Up")
+	Hadamard_gates = Hadamard_block(sites)
+	psi = apply(Hadamard_gates, psi; cutoff = 1E-9, maxdim = 32)
+	return psi
 end

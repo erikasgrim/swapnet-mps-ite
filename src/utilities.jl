@@ -73,42 +73,87 @@ function is_independent_set(
 	return true
 end
 
-function get_expvals(psi, logical_qubit_order=collect(1:length(psi)))
-    z_expvals = 2 * expect(psi, "Sz")
-    zz_expvals = 4 * correlation_matrix(psi, "Sz", "Sz")
-    # Reorder zvals and zzcorr
-    z_expvals = z_expvals[logical_qubit_order]
-    zz_expvals = zz_expvals[logical_qubit_order, logical_qubit_order]
-    return z_expvals, zz_expvals
+function get_expvals(psi, logical_qubit_order = collect(1:length(psi)))
+	z_expvals = 2 * expect(psi, "Sz")
+	zz_expvals = 4 * correlation_matrix(psi, "Sz", "Sz")
+	# Reorder zvals and zzcorr
+	logical_to_site = invperm(logical_qubit_order)
+	z_expvals = z_expvals[logical_to_site]
+	zz_expvals = zz_expvals[logical_to_site, logical_to_site]
+	return z_expvals, zz_expvals
 end
 
 function get_samples(psi, N_s, logical_qubit_order)
-    psi = orthogonalize(psi, 1)
-    samples = [sample(psi).-1 for _ in 1:N_s]
-    # If logical order is permuted, reorder bits in samples
-    for s in samples
-        s[:] = s[logical_qubit_order]
-    end
-    return samples
+	psi = orthogonalize(psi, 1)
+	samples = [sample(psi) .- 1 for _ in 1:N_s]
+	# If logical order is permuted, reorder bits in samples
+	logical_to_site = invperm(logical_qubit_order)
+	for s in samples
+		s[:] = s[logical_to_site]
+	end
+	return hcat(samples...)
 end
 
 function get_entanglement_entropy(psi, b)
-    psi = orthogonalize(psi, b)
-    U,S,V = svd(psi[b], (linkinds(psi, b-1)..., siteinds(psi, b)...))
-    SvN = 0.0
-    for n=1:dim(S, 1)
-        p = S[n,n]^2
-        SvN -= p * log(p)
-    end
-    return SvN
+	psi = orthogonalize(psi, b)
+	U, S, V = svd(psi[b], (linkinds(psi, b - 1)..., siteinds(psi, b)...))
+	SvN = 0.0
+	for n ∈ 1:dim(S, 1)
+		p = S[n, n]^2
+		SvN -= p * log(p)
+	end
+	return SvN
 end
 
 function get_all_entanglement_entropies(psi)
-    N = length(psi)
-    entropies = Float64[]
-    for b in 1:N-1
-        SvN = get_entanglement_entropy(psi, b)
-        push!(entropies, SvN)
-    end
-    return entropies
+	N = length(psi)
+	entropies = Float64[]
+	for b in 1:N-1
+		SvN = get_entanglement_entropy(psi, b)
+		push!(entropies, SvN)
+	end
+	return entropies
+end
+
+function save_results(
+	state_list::Vector{MPS},
+	state_energies_list::Vector{Float64},
+	z_expvals_list::Vector{Vector{Float64}},
+	zz_expvals_list::Vector{Matrix{Float64}},
+	samples_list::Vector{Matrix{Int}},
+	energy_samples_list::Vector{Vector{Float64}},
+	time_list::Vector{Float64},
+	params::Dict{String, Real},
+	save_dir::String,
+	file_prefix::String = "results"
+)
+	z_expvals_array = reduce(hcat, z_expvals_list)
+	zz_expvals_array = cat(zz_expvals_list...; dims = 3)
+	energy_samples_array = reduce(hcat, energy_samples_list)
+	samples_array = cat(samples_list...; dims = 3)
+	# Save results to HDF5 file
+	h5file = joinpath(save_dir, "$(file_prefix).h5")
+	println("Saving results to $h5file")
+	h5open(h5file, "w") do file
+		write(file, "state_energies", state_energies_list)
+		write(file, "z_expvals", z_expvals_array)
+		write(file, "zz_expvals", zz_expvals_array)
+		write(file, "samples", samples_array)
+		write(file, "energy_samples", energy_samples_array)
+		write(file, "time", time_list)
+
+		for (s, psi) in enumerate(state_list)
+			g = create_group(file, "psi_$(s-1)")
+			write(g, "MPS", psi)
+		end
+	end
+
+	# Save parameters to JSON file
+	paramfile = joinpath(save_dir, "params.json")
+	open(paramfile, "w") do file
+		JSON.print(file, params)
+
+
+	end
+	return nothing
 end
