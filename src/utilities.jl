@@ -2,7 +2,8 @@ function load_ising(path::String)
 	data = JSON.parsefile(path)
 
 	Jdict = data["J"]
-	hdict = data["h"]
+	#hdict = data["h"]
+	hdict = haskey(data, "h") ? data["h"] : Dict{String, Float64}()
 	offset = get(data, "c", 0.0)  # Optional constant term
 
 	J = Dict{Tuple{Int, Int}, Float64}()
