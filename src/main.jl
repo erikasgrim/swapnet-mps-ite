@@ -4,85 +4,56 @@ include("utilities.jl")
 include("tebd.jl")
 include("qrr.jl")
 
-let	
-	sweep_parameters()
-	# # Parameters for running TEBD on multiple instances
-	# chi = 32
-	# cutoff = 1E-9
-	# tau = 1.0
-	# tau_min = 1E-9
-	# tau_max = 15/50
-	# Nsamples = 1000
-	# Nsteps = 20
-	# n_threads = 8
-	# qubit_ordering = "shuffle"  # "default", "fiedler", or "shuffle"
-	# network_architecture = "quadratic"  # "triangular" or "quadratic"
-
-	# Nv = 100
-
-	# for idx in 0:0
-	# 	data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "ER", "100v", "Ising", "ising_graph$(idx).json")
-	# 	save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "ER", "100v", "MPS", "ising_graph$(idx)")
-
-	# 	# data_path = joinpath(@__DIR__, "..", "data", "sk_model", "$(Nv)v", "Ising", "ising_graph$(idx).json")
-	# 	# save_dir = joinpath(@__DIR__, "..", "results", "sk_model", "$(Nv)v", "MPS", "ising_graph$(idx)_$network_architecture")
-
-	# 	# data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "3Reg", "100v", "Ising", "ising_graph$(idx).json")
-	# 	# save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "3Reg", "100v", "MPS", "ising_graph$(idx)")
-		
-	# 	run_TEBD(
-	# 		data_path,
-	# 		chi = chi,
-	# 		cutoff = cutoff,
-	# 		tau = tau,
-	# 		tau_min = tau_min,
-	# 		tau_max = tau_max,
-	# 		Nsamples = Nsamples,
-	# 		Nsteps = Nsteps,
-	# 		n_threads = n_threads,
-	# 		qubit_ordering = qubit_ordering,
-	# 		network_architecture = network_architecture,
-	# 		save_dir = save_dir,
-	# 		seed = idx,
-	# 	)
-	# end
-end
-
 function sweep_parameters()
-	chi_values = [16, 32, 64]
-	tau = 1
+	chi_values = [8, 16, 32, 64, 128]
+	cutoff = 1E-9
 	tau_min = 1E-9
-	tau_max = 1E0
+	tau_max = 1000.0
 	Nsamples = 1000
-	Nsteps = 30
-	n_threads = 8
-	qubit_ordering = ["fiedler", "shuffle"]
+	Nsteps = 40
+	n_threads = 1
+	qubit_orderings = ["fiedler", "default"]
 	network_architectures = ["triangular", "quadratic"]
+	graph_type = ["portfolio"]
 	Nv = 100
-	graph_types = ["ER", "3Reg"]
 
-	max_problem_idx = 19
+	max_idx = 0
 
-
-	for qubit_ordering in qubit_orderings
+	for graph in graph_type
 		for chi in chi_values
-			for graph_type in graph_types
+			for qubit_ordering in qubit_orderings
 				for network_architecture in network_architectures
-					for idx in 0:max_problem_idx
-						if graph_type == "ER"
-							tau_max = 15/60
+					for idx in 0:max_idx
+						if graph == "ER"
+							tau = 3/50
+							data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "ER", "100v", "Ising", "ising_graph$(idx).json")
+							save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "ER", "100v", "MPS_fix_dt", "ising_graph$(idx)_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
+						elseif graph == "3Reg"
+							tau = 1.0
+							data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "3Reg", "100v", "Ising", "ising_graph$(idx).json")
+							save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "3Reg", "100v", "MPS_fix_dt", "ising_graph$(idx)_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
+
+						elseif graph == "SK"
+							tau = 3/100
+							data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "SK", "100v", "Ising", "ising_graph$(idx).json")
+							save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "SK", "100v", "MPS_fix_dt", "ising_graph$(idx)_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
+
+						elseif graph == "sk_model"
+							tau = 3/100
+							data_path = joinpath(@__DIR__, "..", "data", "sk_model", "100v", "Ising", "ising_graph$(idx).json")
+							save_dir = joinpath(@__DIR__, "..", "results", "sk_model", "100v", "MPS_fix_dt", "ising_graph$(idx)_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
+						elseif graph == "portfolio"
+							tau = 10.0
+							data_path = joinpath(@__DIR__, "..", "data", "portfolio", "Ising", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0.json")
+							save_dir = joinpath(@__DIR__, "..", "results", "portfolio", "MPS_dtau10", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
 						else
-							tau_max = 15/3
+							error("Unknown graph type: $graph")
 						end
-						println("Running TEBD for graph type $graph_type, architecture $network_architecture, chi $chi, instance $idx")
-						println("-----------------------------------------------------")
-						data_path = joinpath(@__DIR__, "..", "data", "MaxCut", graph_type, "$(Nv)v", "Ising", "ising_graph$(idx).json")
-						save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", graph_type, "$(Nv)v", "MPS_$(chi)", network_architecture, qubit_ordering, "ising_graph$(idx)")
 
 						run_TEBD(
 							data_path,
 							chi = chi,
-							cutoff = 1E-9,
+							cutoff = cutoff,
 							tau = tau,
 							tau_min = tau_min,
 							tau_max = tau_max,
@@ -100,3 +71,52 @@ function sweep_parameters()
 		end
 	end
 end
+
+
+let	
+	sweep_parameters()
+    # Parameters for running TEBD on multiple instances
+	chi = 64
+	cutoff = 1E-9
+	tau = 10.0
+	tau_min = 1E-9
+	tau_max = 1000
+	Nsamples = 1000
+	Nsteps = 20
+	n_threads = 1
+	qubit_ordering = "fiedler"  # "default", "fiedler", or "shuffle"
+	network_architecture = "triangular"  # "triangular" or "quadratic"
+
+	Nv = 100
+
+	for idx in 3:3
+		data_path = joinpath(@__DIR__, "..", "data", "portfolio", "Ising", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0.json")
+		save_dir = joinpath(@__DIR__, "..", "results", "portfolio", "MPS", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0_$(network_architecture)_chi$(chi)_$(qubit_ordering)")
+
+		# data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "SK", "$(Nv)v", "Ising", "ising_graph$(idx).json")
+		# save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "SK", "$(Nv)v", "MPS", "ising_graph$(idx)")
+
+		# data_path = joinpath(@__DIR__, "..", "data", "sk_model", "$(Nv)v", "Ising", "ising_graph$(idx).json")
+		# save_dir = joinpath(@__DIR__, "..", "results", "sk_model", "$(Nv)v", "MPS", "ising_graph$(idx)_$network_architecture")
+
+		#data_path = joinpath(@__DIR__, "..", "data", "MaxCut", "3Reg", "100v", "Ising", "ising_graph$(idx).json")
+		#save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "3Reg", "100v", "MPS", "ising_graph$(idx)")
+		
+		run_TEBD(
+			data_path,
+			chi = chi,
+			cutoff = cutoff,
+			tau = tau,
+			tau_min = tau_min,
+			tau_max = tau_max,
+			Nsamples = Nsamples,
+			Nsteps = Nsteps,
+			n_threads = n_threads,
+			qubit_ordering = qubit_ordering,
+			network_architecture = network_architecture,
+			save_dir = save_dir,
+			seed = idx,
+		)
+	end
+end
+
