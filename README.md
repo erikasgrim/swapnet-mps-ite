@@ -1,4 +1,4 @@
-# MPS-TEBD QUBO Solver
+# Matrix Product State (MPS) SWAP Network QUBO Solver
 
 This repository contains the code used to produce the results of the paper "Enhancing Quantum-Inspired Tensor Network Optimization using SWAP Networks and Problem-Aware Qubit Layout".
 
