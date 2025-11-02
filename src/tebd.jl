@@ -1,3 +1,20 @@
+"""
+    quadratic_SWAP_network_block(s, J, h, tau[, logical_qubit_order, zzcorr, zvals])
+
+Build the TEBD two-site gate sequence for a quadratic SWAP network. The routine walks the
+nearest-neighbour pairs induced by the SWAP pattern, applies ZZ couplings and on-site Z
+fields, and returns the resulting ITensor gates together with the updated logical qubit order.
+
+- `s`: Site indices matching the current MPS.
+- `J`: Coupling strengths keyed by `(min(i, j), max(i, j))`.
+- `h`: On-site field strengths keyed by site index.
+- `tau`: Time-step used for Trotter evolution.
+- `logical_qubit_order`: Mutable map from physical position to logical index (defaults to identity).
+- `zzcorr`: Optional ZZ renormalization matrix applied element-wise when exponentiating.
+- `zvals`: Optional Z renormalization vector applied on single-site terms.
+
+Returns the tuple `(gates, logical_qubit_order)`.
+"""
 function quadratic_SWAP_network_block(s,
 	J::Dict{Tuple{Int, Int},
 		Float64},
@@ -53,6 +70,24 @@ function quadratic_SWAP_network_block(s,
 	return gates, logical_qubit_order
 end
 
+"""
+    triangular_SWAP_network_block(s, J, h, tau[, logical_qubit_order, zzcorr, zvals, bottom_up])
+
+Construct the TEBD gate sequence for the alternating triangular SWAP network. Alternates the
+pairing direction across layers to sweep interactions through the chain and appends single-site
+Z rotations at the end.
+
+- `s`: Site indices for the MPS.
+- `J`: Coupling strengths keyed by `(min(i, j), max(i, j))`.
+- `h`: On-site field strengths keyed by site index.
+- `tau`: Time-step used for Trotter evolution.
+- `logical_qubit_order`: Mutable mapping from physical to logical indices (defaults to identity).
+- `zzcorr`: Optional ZZ renormalization matrix applied when exponentiating couplings.
+- `zvals`: Optional Z renormalization vector applied to single-site fields.
+- `bottom_up`: When `true`, sweep interactions from the first site upward; when `false`, sweep downward.
+
+Returns `(gates, logical_qubit_order)`.
+"""
 function triangular_SWAP_network_block(s,
 	J::Dict{Tuple{Int, Int},
 		Float64},
@@ -119,6 +154,15 @@ function triangular_SWAP_network_block(s,
 	return gates, logical_qubit_order
 end
 
+"""
+    Hadamard_block(s)
+
+Create a layer of single-qubit Hadamard gates over the provided site indices.
+
+- `s`: Site indices for the current MPS.
+
+Returns a vector of ITensor gates.
+"""
 function Hadamard_block(s)
 	H = (1 / sqrt(2)) * [1 1; 1 -1]
 	N = length(s)
@@ -130,6 +174,15 @@ function Hadamard_block(s)
 	return gates
 end
 
+"""
+    initialize_superposition(sites)
+
+Prepare the uniform superposition state by applying Hadamard gates to the `|0⟩` product state.
+
+- `sites`: Site indices used to construct the initial MPS.
+
+Returns the initialized `MPS`.
+"""
 function initialize_superposition(sites)
 	psi = productMPS(sites, "Up")
 	Hadamard_gates = Hadamard_block(sites)
@@ -137,6 +190,35 @@ function initialize_superposition(sites)
 	return psi
 end
 
+"""
+    run_TEBD(data_path; chi=64, cutoff=1e-9, tau=1.0, tau_min=1e-4, tau_max=1e-1,
+             Nsamples=1000, Nsteps=20, n_threads=8, qubit_ordering="default",
+             network_architecture="triangular", save_dir=missing, save_prefix="results",
+             seed=42)
+
+Execute the TEBD optimisation loop for an Ising instance stored at `data_path`. The routine
+initialises the MPS, evolves it according to the chosen SWAP network, collects diagnostics,
+and optionally persists intermediate states and observables.
+
+# Arguments
+- `data_path`: Path to an HDF5 or JLD file readable by `load_ising`.
+
+# Keyword Arguments
+- `chi`: Maximum bond dimension enforced during TEBD updates.
+- `cutoff`: SVD truncation threshold for gate applications.
+- `tau`: Starting Trotter step size.
+- `tau_min`, `tau_max`: Bounds that may be used downstream when adapting `tau`.
+- `Nsamples`: Number of measurement samples drawn per step.
+- `Nsteps`: Number of TEBD time steps to execute.
+- `n_threads`: Number of BLAS threads.
+- `qubit_ordering`: Strategy for initial logical ordering (`"default"`, `"fiedler"`, `"shuffle"`).
+- `network_architecture`: Gate layout, `"triangular"` or `"quadratic"`.
+- `save_dir`: Output directory for checkpoints and diagnostics (no files written when `missing`).
+- `save_prefix`: File prefix passed to `save_results`.
+- `seed`: Seed used for ordering randomisation.
+
+Returns nothing. Prints progress to STDOUT and saves results when requested.
+"""
 function run_TEBD(
 	data_path;
 	chi = 64,
@@ -177,7 +259,6 @@ function run_TEBD(
 	elseif qubit_ordering === "fiedler"
 		init_logical_qubit_order = fiedler_ordering(J)
 	elseif qubit_ordering === "shuffle"
-		# Set random seed
 		Random.seed!(seed)
 		init_logical_qubit_order = collect(1:N)
 		shuffle!(init_logical_qubit_order)
@@ -228,8 +309,7 @@ function run_TEBD(
 		tau_effective = tau
 
 		if network_architecture === "triangular"
-			#bottom_up = true  # Always do bottom-up for now
-			bottom_up = step % 2 == 1
+			bottom_up = step % 2 == 1 # Alternate sweeping direction each step
 			TEBD_gates, logical_qubit_order = triangular_SWAP_network_block(sites, J, h, tau_effective, logical_qubit_order, zz_expvals, z_expvals, bottom_up)
 		elseif network_architecture === "quadratic"
 			TEBD_gates, logical_qubit_order = quadratic_SWAP_network_block(sites, J, h, tau_effective, logical_qubit_order, zz_expvals, z_expvals)
@@ -243,7 +323,6 @@ function run_TEBD(
 			println("Error during TEBD application: $error")
 			break
 		end
-		#println("Norm after TEBD: ", norm(psi))
 		normalize!(psi)
 
 		# State energy
