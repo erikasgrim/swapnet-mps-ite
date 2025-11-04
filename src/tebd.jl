@@ -224,8 +224,6 @@ function run_TEBD(
 	chi = 64,
 	cutoff = 1E-9,
 	tau = 1.0,
-	tau_min = 1E-4,
-	tau_max = 1E-1,
 	Nsamples = 1000,
 	Nsteps = 20,
 	n_threads = 8,
@@ -294,8 +292,6 @@ function run_TEBD(
 		"chi" => chi,
 		"cutoff" => cutoff,
 		"tau" => tau,
-		"tau_min" => tau_min,
-		"tau_max" => tau_max,
 		"Nsamples" => Nsamples,
 		"Nsteps" => Nsteps,
 		"qubit_ordering" => qubit_ordering,
@@ -306,7 +302,7 @@ function run_TEBD(
 	progress_bar = ProgressBar(1:Nsteps)
 	start_time = time()
 	for step in progress_bar
-		tau_effective = tau
+		tau_effective = tau # Here we could adapt tau to change over time, if desired
 
 		if network_architecture === "triangular"
 			bottom_up = step % 2 == 1 # Alternate sweeping direction each step
