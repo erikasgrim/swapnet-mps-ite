@@ -36,7 +36,7 @@ def configure_plot_style(
 
 
 def set_size(
-    width: float | str = 232,
+    width: float | str = 435.3,
     fraction: float = 1,
     squeeze_height: float = 1,
     subplots: tuple[int, int] = (1, 1),
