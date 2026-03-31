@@ -1,7 +1,7 @@
 # Matrix Product State (MPS) SWAP Network QUBO Solver
 
 <p align="center">
-  <img src="figures/paper_figures/Algorithm_Schematic.png" alt="Algorithm schematic overview" width="720">
+  <img src="misc/Algorithm_Schematic.png" alt="Algorithm schematic overview" width="720">
 </p>
 
 This repository contains the code used to produce the results of the paper "Enhancing Quantum-Inspired Tensor Network Optimization using SWAP Networks and Problem-Aware Qubit Layout", available as a [pre-print on arXiv](https://arxiv.org/abs/2511.02980).

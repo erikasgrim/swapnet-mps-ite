@@ -11,13 +11,13 @@ DEFAULT_FONT_CONFIG = {
     "text.usetex": True,
     "font.family": "serif",
     # Use 10pt font in plots, to match 10pt font in document
-    "axes.labelsize": 11,
-    "font.size": 11,
+    "axes.labelsize": 10,
+    "font.size": 10,
     # Make the legend/label fonts a little smaller
-    "legend.fontsize": 11,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11,
-    "axes.titlesize": 12,
+    "legend.fontsize": 10,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "axes.titlesize": 11,
 }
 
 DEFAULT_COLOR_CYCLE = ["#004791", "#4DA060", "#E86A58", "#FFBE00"]
