@@ -23,7 +23,7 @@ function run_parameter_sweep(;
 	directory_name = "example_run",
 )
 	instance_config(graph::AbstractString, idx) = begin
-		data_root = joinpath(@__DIR__, "..", "data")
+		data_root = joinpath(@__DIR__, "..", "instances")
 		results_root = joinpath(@__DIR__, "..", "results")
 		if graph == "ER"
 			tau = 3 / 50
@@ -89,7 +89,7 @@ let
 
 	# Single example run:
 	# run_TEBD(
-	# 	joinpath(@__DIR__, "..", "data", "MaxCut", "ER", "100v", "Ising", "ising_graph0.json");
+	# 	joinpath(@__DIR__, "..", "instances", "MaxCut", "ER", "100v", "Ising", "ising_graph0.json");
 	# 	save_dir = joinpath(@__DIR__, "..", "results", "MaxCut", "ER", "100v", "example_run"),
 	# 	chi = 16,
 	# 	tau = 3 / 50,

@@ -60,7 +60,7 @@ def main():
     graph_type = "ER"
     n_vertices = 100
 
-    dir_path = f"../data/MaxCut/{graph_type}/{n_vertices}v/graphs"
+    dir_path = f"../instances/MaxCut/{graph_type}/{n_vertices}v/graphs"
     save_path = f"../benchmark/BiqCrunch/results/MaxCut/{graph_type}/graphs"
     os.makedirs(save_path, exist_ok=True)
 

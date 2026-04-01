@@ -1,6 +1,6 @@
 .vscode
 .codex
-data
+instances
 __pycache__
 scraps
 results

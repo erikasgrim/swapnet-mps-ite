@@ -6,7 +6,7 @@ import gurobipy as gp
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_ROOT = BASE_DIR.parent / "data"
+DATA_ROOT = BASE_DIR.parent / "instances"
 RESULT_ROOT = BASE_DIR / "gurobi_results"
 
 
