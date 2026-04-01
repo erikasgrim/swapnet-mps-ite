@@ -1,4 +1,5 @@
 .vscode
+.codex
 data
 __pycache__
 scraps
