@@ -1,10 +1,10 @@
 # Matrix Product State (MPS) SWAP Network QUBO Solver
 
 <p align="center">
-  <img src="misc/Algorithm_Schematic.png" alt="Algorithm schematic overview" width="720">
+  <img src="misc/banner.png" alt="Algorithm schematic overview" width="720">
 </p>
 
-This repository contains the code used to produce the results of the paper "Enhancing Quantum-Inspired Tensor Network Optimization using SWAP Networks and Problem-Aware Qubit Layout", available as a [pre-print on arXiv](https://arxiv.org/abs/2511.02980).
+This repository contains the code used to produce the results of the paper *SWAP-Network Routing and Spectral Qubit Ordering for MPS Imaginary-Time Optimization*, available as a [pre-print on arXiv](https://arxiv.org/abs/2511.02980).
 
 ## Project Description
 The solver implements tensor-network-based imaginary time evolution to optimise QUBO instances using matrix product states. Rectangular and triangular SWAP network layouts are combined with problem-aware qubit orderings (e.g. Fiedler heuristics) to improve convergence on dense graphs. The accompanying utilities cover data loading, sampling, entanglement analysis, and data analysis.
@@ -30,7 +30,7 @@ The code is written in Julia and was tested with Julia version 1.8.1. Tensor net
 - Optional diagnostics (e.g. entanglement entropy) can be recomputed via `julia --project=. src/entanglement_entropy.jl`.
 
 ## Contact
-For any questions or issues, please contact the authors of the paper.
+For any questions or issues, please contact the corresponding author.
 
 ## Citation
 If you build upon this code in academic or industrial work, please cite the pre-print as follows:
