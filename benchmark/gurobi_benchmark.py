@@ -89,7 +89,7 @@ def main():
     graph_type = "3Reg"
     num_vertices = 100
     time_limit = 60  # seconds
-    max_instances = 50
+    max_instances = 10
 
     instance_dir = DATA_ROOT / "MaxCut" / graph_type / f"{num_vertices}v" / "QUBO"
     output_dir = RESULT_ROOT / "MaxCut" / graph_type / f"{num_vertices}v"
