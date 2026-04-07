@@ -20,7 +20,7 @@ function run_parameter_sweep(;
 	network_architectures = ["triangular", "quadratic"],
 	graph_types = ["ER", "SK", "3Reg"],
 	instance_indices = 0:9,
-	directory_name = "example_run",
+	directory_name = "MPS_final",
 )
 	instance_config(graph::AbstractString, idx) = begin
 		data_root = joinpath(@__DIR__, "..", "instances")
@@ -42,9 +42,9 @@ function run_parameter_sweep(;
 			name_prefix = "ising_graph$(idx)"
 		elseif graph == "portfolio"
 			tau = 10.0
-			data_path = joinpath(data_root, "portfolio", "Ising", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.004_rho1.0.json")
+			data_path = joinpath(data_root, "portfolio", "Ising", "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0.json")
 			run_root = joinpath(results_root, "portfolio", directory_name)
-			name_prefix = "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.004_rho1.0"
+			name_prefix = "ising_Ns10_Nt9_Nq2_K10_gamma1_zeta0.042_rho1.0"
 		else
 			error("Unknown graph type: $graph")
 		end

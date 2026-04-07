@@ -1,7 +1,6 @@
 .vscode
 .codex
-instances
 __pycache__
-scraps
 results
 BiqCrunch
+obsolete_results
